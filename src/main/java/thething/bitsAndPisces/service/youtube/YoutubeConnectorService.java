@@ -1,10 +1,14 @@
-package thething.bitsAndPisces;
+package thething.bitsAndPisces.service.youtube;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Map.Entry;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.http.HttpTransport;
@@ -16,9 +20,13 @@ import com.google.api.services.youtube.YouTubeScopes;
 import com.google.api.services.youtube.model.Playlist;
 import com.google.api.services.youtube.model.PlaylistItem;
 import com.google.api.services.youtube.model.PlaylistItemListResponse;
+import com.google.api.services.youtube.model.PlaylistListResponse;
 
-public class YoutubeConnector {
+import thething.bitsAndPisces.service.utils.MapResult;
 
+public class YoutubeConnectorService {
+
+	Logger logger = LoggerFactory.getLogger(YoutubeConnectorService.class);
 	/** Application name. */
 	private static final String APPLICATION_NAME = "API Sample";
 
@@ -36,30 +44,61 @@ public class YoutubeConnector {
 	 */
 	private YouTube youtube;
 
+	@SuppressWarnings("unused")
 	private static final List<String> SCOPES = Arrays.asList(YouTubeScopes.YOUTUBE_READONLY);
 
-	public YoutubeConnector() throws IOException {
+	public YoutubeConnectorService() throws IOException {
 		try {
 			HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
 		} catch (Throwable t) {
-			t.printStackTrace();
+			logger.error("Error creating YoutubeConnectorService:", t);
 		}
 		youtube = getYouTubeService();
 	}
 
-	public List<PlaylistItem> getPlayListItems(String playlistId) throws IOException {
+	public MapResult getSongsWithTags(String channelId) throws IOException {
+		List<Playlist> playLists = this.getPlayListsByChannel(channelId);
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		createSongTagMap(resultMap, playLists);
+		MapResult result = new MapResult();
+		return result;
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> createSongTagMap(Map<String, Object> resultMap, List<Playlist> playLists)
+			throws IOException {
+		for (Playlist playList : playLists) {
+			for (PlaylistItem item : getPlayListItems(playList.getId())) {
+				String title = item.getSnippet().getTitle();
+				if (resultMap.get(title) == null) {
+					List<String> a = new ArrayList<String>();
+					a.add(playList.getSnippet().getTitle());
+					resultMap.put(title, a);
+				} else {
+					((ArrayList<String>) resultMap.get(title)).add(playList.getSnippet().getTitle());
+				}
+			}
+		}
+		return resultMap;
+	}
+
+	public List<Playlist> getPlayListsByChannel(String channelId) throws IOException {
+		YouTube.Playlists.List list = youtube.playlists().list("contentDetails,snippet");
+		list.setChannelId(channelId);
+		list.setMaxResults(50L);
+		PlaylistListResponse response = list.execute();
+		return response.getItems();
+	}
+
+	public Playlist getPlayList(String playlistId) throws IOException {
 		YouTube.Playlists.List playList = youtube.playlists().list("contentDetails,snippet");
 		playList.setId(playlistId);
-		List<Playlist> list = playList.execute().getItems();
-		Long size;
-		if (list.size() > 0) {
-			size = list.get(0).getContentDetails().getItemCount();
-			for (Entry<String, Object> e : list.get(0).entrySet()) {
-				System.out.println(e.getKey() + " - " + e.getValue());
-			}
-		} else {
-			return null;
-		}
+		List<Playlist> lists = playList.execute().getItems();
+		Playlist list = lists.get(0);
+		return list;
+	}
+
+	public List<PlaylistItem> getPlayListItems(String playlistId) throws IOException {
 		List<PlaylistItem> endResult = new ArrayList<PlaylistItem>();
 		YouTube.PlaylistItems.List songs = youtube.playlistItems().list("snippet");
 		songs.setPlaylistId(playlistId);
@@ -68,16 +107,12 @@ public class YoutubeConnector {
 		endResult.addAll(response.getItems());
 		String nextPageToken = response.getNextPageToken();
 		while (nextPageToken != null) {
-			System.out.println(nextPageToken);
 			songs.setPageToken(nextPageToken);
 			response = songs.execute();
 			nextPageToken = response.getNextPageToken();
 			endResult.addAll(response.getItems());
 		}
-		System.out.println(endResult.size());
-		for (PlaylistItem item : endResult) {
-			System.out.println(item.getSnippet().getTitle());
-		}
+		logger.info("Result size: " + endResult.size());
 		return endResult;
 	}
 	public YouTube getYouTubeService() throws IOException {

@@ -2,11 +2,13 @@ package thething.bitsAndPisces;
 
 import java.io.IOException;
 
+import thething.bitsAndPisces.service.youtube.YoutubeConnectorService;
+
 public class Main {
 
 	public static void main(String[] args) throws IOException {
-		YoutubeConnector connector = new YoutubeConnector();
-		connector.getPlayListItems("PLPyvHk7CXHVJq23RCA1KoFTefdDCD3Jeg");
+		YoutubeConnectorService connector = new YoutubeConnectorService();
+		connector.getSongsWithTags("UCdO1k99A8dJEiAjNY_GvwIQ");
 	}
 
 }
