@@ -52,7 +52,7 @@ public class WordComparator {
 				if (aChars.size() > 1 && (aChars.get(1) == bChars.get(0))) {
 					// If the next characters after the possibly switched ones match, there is high
 					// chance of spelling mistake
-					if (aChars.get(2) == bChars.get(2)) {
+					if ((aChars.size() > 2 && bChars.size() > 2) && aChars.get(2) == bChars.get(2)) {
 						System.out.println("Possibly switched characters: " + aChar + " , " + bChars.get(1));
 
 						totalPoints += 1;
@@ -88,7 +88,7 @@ public class WordComparator {
 				// else if the char in a is the next char in b, b might have an extra character
 				else if (bChars.size() > 1 && (aChar == bChars.get(1))) {
 					// next chars after that are the same
-					if (aChars.get(1) == bChars.get(2)) {
+					if (aChars.size() > 1 && aChars.get(1) == bChars.get(2)) {
 						System.out.println("bChars seems to have an extra character: " + aChar);
 						totalPoints += 0.25;
 						bChars.remove();
@@ -115,7 +115,7 @@ public class WordComparator {
 		}
 		System.out.println("Totalpoints: " + totalPoints);
 		System.out.println("Theoretical average: " + totalPoints / aSize);
-		return 0;
+		return totalPoints / aSize;
 	}
 
 	private LinkedList<Character> wordToLinkedList(String s) {

@@ -61,6 +61,7 @@ public class YoutubeConnectorService {
 		Map<String, Object> resultMap = new HashMap<String, Object>();
 		createSongTagMap(resultMap, playLists);
 		MapResult result = new MapResult();
+		result.setResult(resultMap);
 		return result;
 	}
 
