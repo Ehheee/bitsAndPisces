@@ -1,10 +1,13 @@
 package thething.bitsAndPisces.service.duplicates;
 
 import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -28,32 +31,47 @@ public class DuplicateChecker {
 
 	}
 
-	public void checkBySplits(String str, List<String> others, String splitPattern) {
-		Map<String, Object> totalMap = new HashMap<>();
-		String[] splits = str.split(splitPattern);
+	public Map<String, Float> getSingleResult(String str, List<String> others, String splitPattern, float threshold) {
+		Map<String, Float> resultMap = new HashMap<>();
+		List<String> baseSplits = getSplits(str, splitPattern);
 		for (String other : others) {
-			String[] otherSplits = other.split(splitPattern);
-			for (String split : splits) {
-				String bestMatch = null;
-				int bestScore = 100;
-				if (split.length() < 2) {
-					continue;
-				}
-				for (String otherSplit : otherSplits) {
-					if (otherSplit.length() < 2) {
-						continue;
-					}
-					int res = StringUtils.getLevenshteinDistance(split, otherSplit);
-					if (res < bestScore) {
-						bestScore = res;
-						bestMatch = otherSplit;
-					}
-				}
-				logger.info(split + " - " + bestMatch + " - " + bestScore);
-				bestScore = 100;
-				bestMatch = null;
+			List<Entry<String, Integer>> singleResults = new ArrayList<>();
+			List<String> otherSplits = getSplits(other, splitPattern);
+			for (String baseSplit : baseSplits) {
+				singleResults.add(findBestMatch(baseSplit, otherSplits));
+			}
+			Float average = getAverage(singleResults);
+			if (average < threshold) {
+				resultMap.put(other, average);
 			}
 		}
+		return resultMap;
+	}
+
+	private Float getAverage(List<Entry<String, Integer>> pairs) {
+		Integer sum = 0;
+		for (Entry<String, Integer> pair : pairs) {
+			sum += pair.getValue();
+		}
+		return new Float(sum) / new Float(pairs.size());
+	}
+
+	private Entry<String, Integer> findBestMatch(String baseSplit, List<String> otherSplits) {
+		int bestScore = 100;
+		String bestMatch = null;
+		for (String otherSplit : otherSplits) {
+			int res = StringUtils.getLevenshteinDistance(baseSplit, otherSplit);
+			if (res < bestScore) {
+				bestScore = res;
+				bestMatch = otherSplit;
+			}
+		}
+		return new AbstractMap.SimpleEntry<String, Integer>(bestMatch, bestScore);
+	}
+
+	private List<String> getSplits(String str, String splitPattern) {
+		return Arrays.stream(str.split(splitPattern)).filter(c -> c != null && !"".equals(c))
+				.collect(Collectors.toList());
 	}
 
 	public void createOrderedScoresForString(String str, List<String> others) {

@@ -21,7 +21,7 @@ public class Main {
 		DuplicateChecker checker = new DuplicateChecker();
 		Set<String> titles = result.getResult().keySet();
 		for (String s : titles) {
-			checker.checkBySplits(s, new ArrayList<String>(titles), "\\W");
+			checker.getSingleResult(s, new ArrayList<String>(titles), "\\W", 1.0f);
 		}
 
 	}
