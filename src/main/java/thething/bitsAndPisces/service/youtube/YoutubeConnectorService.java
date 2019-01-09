@@ -6,6 +6,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +25,7 @@ import com.google.api.services.youtube.model.PlaylistItemListResponse;
 import com.google.api.services.youtube.model.PlaylistListResponse;
 
 import thething.bitsAndPisces.service.utils.MapResult;
+import thething.bitsAndPisces.utils.MapUtils;
 
 public class YoutubeConnectorService {
 
@@ -65,22 +68,36 @@ public class YoutubeConnectorService {
 		return result;
 	}
 
-	@SuppressWarnings("unchecked")
 	private Map<String, Object> createSongTagMap(Map<String, Object> resultMap, List<Playlist> playLists)
 			throws IOException {
 		for (Playlist playList : playLists) {
 			for (PlaylistItem item : getPlayListItems(playList.getId())) {
-				String title = item.getSnippet().getTitle();
-				if (resultMap.get(title) == null) {
-					List<String> a = new ArrayList<String>();
-					a.add(playList.getSnippet().getTitle());
-					resultMap.put(title, a);
-				} else {
-					((ArrayList<String>) resultMap.get(title)).add(playList.getSnippet().getTitle());
-				}
+				addTag(processPlayListItem(item, resultMap), playList.getSnippet().getTitle());
+
 			}
 		}
 		return resultMap;
+	}
+
+	@SuppressWarnings("unchecked")
+	private void addTag(Map<String, Object> songData, String tag) {
+		if (songData.get("tags") != null && songData.get("tags") instanceof Set) {
+			((Set<String>) songData.get("tags")).add(tag);
+		}
+	}
+
+	private Map<String, Object> processPlayListItem(PlaylistItem item, Map<String, Object> resultMap) {
+		String videoId = item.getContentDetails().getVideoId();
+		String title = item.getSnippet().getTitle();
+		Map<String, Object> songData = MapUtils.toMap(resultMap.get(videoId));
+		if (songData == null) {
+			songData = new HashMap<>();
+			resultMap.put(videoId, songData);
+			songData.put("title", title);
+			songData.put("videoId", videoId);
+			songData.put("tags", new TreeSet<String>());
+		}
+		return songData;
 	}
 
 	public List<Playlist> getPlayListsByChannel(String channelId) throws IOException {
@@ -101,7 +118,7 @@ public class YoutubeConnectorService {
 
 	public List<PlaylistItem> getPlayListItems(String playlistId) throws IOException {
 		List<PlaylistItem> endResult = new ArrayList<PlaylistItem>();
-		YouTube.PlaylistItems.List songs = youtube.playlistItems().list("snippet");
+		YouTube.PlaylistItems.List songs = youtube.playlistItems().list("contentDetails,snippet");
 		songs.setPlaylistId(playlistId);
 		songs.setMaxResults(50l);
 		PlaylistItemListResponse response = songs.execute();
