@@ -35,6 +35,9 @@ public class DuplicateChecker {
 		Map<String, Float> resultMap = new HashMap<>();
 		List<String> baseSplits = getSplits(str, splitPattern);
 		for (String other : others) {
+			if (str.toLowerCase().contains("bicep") && other.toLowerCase().contains("bicep")) {
+				logger.info("THE FUCK IS THIS: " + str + " ----- " + other);
+			}
 			List<Entry<String, Integer>> singleResults = new ArrayList<>();
 			List<String> otherSplits = getSplits(other, splitPattern);
 			for (String baseSplit : baseSplits) {
@@ -60,7 +63,7 @@ public class DuplicateChecker {
 		int bestScore = 100;
 		String bestMatch = null;
 		for (String otherSplit : otherSplits) {
-			int res = StringUtils.getLevenshteinDistance(baseSplit, otherSplit);
+			int res = StringUtils.getLevenshteinDistance(baseSplit.toLowerCase(), otherSplit.toLowerCase());
 			if (res < bestScore) {
 				bestScore = res;
 				bestMatch = otherSplit;
