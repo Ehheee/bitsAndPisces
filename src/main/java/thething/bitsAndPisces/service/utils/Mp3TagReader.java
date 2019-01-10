@@ -24,20 +24,26 @@ public class Mp3TagReader {
 		String artist = "";
 		String title = "";
 		String result = "";
-		if (v1 != null) {
-			artist = v1.getArtist();
-			title = v1.getTitle();
-		}
 		if (v2 != null) {
-			artist = "".equals(artist) ? v2.getArtist() : artist;
-			title = "".equals(title) ? v2.getTitle() : title;
+			try {
+				artist = v2.getArtist();
+				title = v2.getTitle();
+			} catch (Exception e) {
+				logger.warn("Problem reading v2 tag: " + path, e);
+			}
+		}
+		if (v1 != null) {
+			artist = "".equals(artist) ? v1.getArtist() : artist;
+			title = "".equals(title) ? v1.getTitle() : title;
 		}
 		if (title == null || artist == null || "".equals(title) || "".equals(artist)) {
 			result = Paths.get(path).getFileName().toString();
+			if (result.endsWith(".mp3")) {
+				result = result.substring(0, result.length() - 4);
+			}
 		} else {
 			result = artist + " - " + title;
 		}
-		logger.info(result);
 		return result;
 	}
 }
